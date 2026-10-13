@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>ESP32 · RGB LED Kontrol</title>
+<style>
+:root{color-scheme:dark;font-family:Inter,system-ui,-apple-system,Segoe UI,Arial,sans-serif}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(ellipse at 65% -30%,#243f65 0,transparent 60%),#0d1320;color:#ebeff9}
+main{max-width:900px;margin:auto;padding:40px 20px 60px}header{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:22px}
+h1{font-size:clamp(24px,4vw,34px);margin:0;letter-spacing:-.9px}.subtitle{color:#a5b0c7;margin-top:7px;font-size:14px}
+button{font:inherit;cursor:pointer;border:0;border-radius:12px;padding:11px 16px;font-weight:650;color:#f5f7ff;background:#2b374e}
+button:hover{filter:brightness(1.15)}button:disabled{opacity:.48;cursor:not-allowed}.primary{background:#5085ff;color:#fff}.danger{background:#582e42;color:#ffbfc9}
+.status{display:flex;align-items:center;gap:8px;font-size:13px;color:#b8c2d5;padding:9px 0}.dot{height:9px;width:9px;border-radius:50%;background:#e5a35c}.dot.connected{background:#47c78b}
+.panel{background:#182236;border:1px solid #334159;border-radius:20px;padding:24px;margin-top:18px;box-shadow:0 8px 30px #0002}
+.panelhead{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}h2{font-size:19px;margin:0}small{color:#a8b6cb}
+.leds{display:flex;gap:8px;padding:22px 0 24px;flex-wrap:wrap}.led{height:21px;width:21px;flex:1;min-width:16px;max-width:48px;border-radius:7px;background:#344055;border:1px solid #ffffff26;box-shadow:inset 0 1px 2px #ffffff15}
+.controls{display:grid;grid-template-columns:1fr 1fr;gap:24px}.control{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.label{color:#adb9d0;font-size:13px;margin-bottom:8px}
+input[type=color]{border:2px solid #52647f;padding:3px;width:56px;height:44px;border-radius:10px;background:transparent;cursor:pointer}
+input[type=range]{width:100%;accent-color:#7198ff;cursor:pointer}.rangeLine{display:flex;justify-content:space-between;align-items:center}.swatches{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.swatch{height:31px;width:31px;border-radius:50%;padding:0;border:2px solid #ffffff5c}.footer{font-size:13px;color:#a0aec7;margin:24px 0;line-height:1.7}
+.actions{display:flex;gap:12px;align-items:center;flex-wrap:wrap}.mono{font-family:ui-monospace,Consolas,monospace;font-size:12px;color:#a6b5d0}
+@media(max-width:620px){.controls{grid-template-columns:1fr}.panel{padding:17px}.leds{gap:4px}.led{border-radius:4px;height:16px}}
+</style>
+</head>
+<body>
+<main>
+<header>
+  <div><h1>RGB LED Kontrol</h1><div class="subtitle">ESP32-DevKitC V4 · 20 WS2812B · BLE</div></div>
+  <button id="connect" class="primary">Bluetooth ile bağlan</button>
+</header>
+<div class="status"><span id="dot" class="dot"></span><span id="status">Bağlantı yok</span></div>
+<div id="panels"></div>
+<div class="panel actions"><button id="off" class="danger">Tüm LED'leri kapat</button><button id="both">Her iki grubu aç</button><span class="mono">USB güvenli parlaklık: 0–32 / 255</span></div>
+<p class="footer">Chrome veya Edge üzerinde <strong>http://localhost:8000</strong> adresinden açın. Bilgisayarın Bluetooth'u açık olmalı. İlk bağlantıda ESP32-LED-20 cihazını seçin. iPhone Safari, Web Bluetooth'u doğrudan desteklemez.</p>
+</main>
+<script>
+'use strict';
+const SERVICE='f15e43a0-7a7f-4ff8-9a9a-822277011000';
+const WRITE='f15e43a0-7a7f-4ff8-9a9a-822277011001';
+let device=null, characteristic=null, queue=Promise.resolve();
+const groups=[{color:'#ff2020',brightness:20,on:false},{color:'#2080ff',brightness:20,on:false}];
+const $=id=>document.getElementById(id);
+const swatches=['#ff2020','#ff8f20','#ffe020','#30ef80','#209bff','#895aff','#ff55cc','#ffffff'];
+function connected(){return !!(characteristic && device?.gatt?.connected)}
+function status(message,ok=false){$('status').textContent=message;$('dot').classList.toggle('connected',ok);$('connect').textContent=ok?'Bağlantıyı kes':'Bluetooth ile bağlan'}
+function rgb(hex){return [1,3,5].map(n=>parseInt(hex.slice(n,n+2),16))}
+function send(msg){
+  if(!connected())return;
+  // GATT yazmalarini siraya koy: hizli renk degistirirken 'operation in progress' hatasini engeller.
+  queue=queue.catch(()=>{}).then(async()=>{
+    if(!connected())return;
+    const bytes=new TextEncoder().encode(msg);
+    await characteristic.writeValueWithResponse(bytes);
+  }).catch(e=>status('Gönderme hatası: '+e.message,connected()));
+}
+function update(i){
+  const g=groups[i], color=g.on?g.color:'#344055';
+  document.querySelectorAll(`#leds${i} .led`).forEach(el=>{el.style.background=color;el.style.opacity=g.on?(0.24+0.76*g.brightness/32):1;el.style.boxShadow=g.on?`0 0 10px ${g.color}60`:'none'});
+  $(`state${i}`).textContent=g.on?'Açık':'Kapalı';$(`toggle${i}`).textContent=g.on?'Grubu kapat':'Grubu aç';
+  $(`brightnessVal${i}`).textContent=g.brightness;
+}
+function apply(i){const g=groups[i];send(`G,${i},${rgb(g.color).join(',')},${g.brightness},${g.on?1:0}`);update(i)}
+function makePanel(i){
+  const host=document.createElement('section');host.className='panel';
+  host.innerHTML=`<div class="panelhead"><div><h2>Grup ${i+1} <small>· LED ${i*10+1}–${i*10+10}</small></h2><div class="subtitle" id="state${i}">Kapalı</div></div><button id="toggle${i}">Grubu aç</button></div>
+  <div class="leds" id="leds${i}">${'<span class="led"></span>'.repeat(10)}</div>
+  <div class="controls"><div><div class="label">Renk seçimi</div><div class="control"><input type="color" id="color${i}" value="${groups[i].color}" /><strong id="hex${i}">${groups[i].color.toUpperCase()}</strong></div><div class="swatches" id="swatches${i}"></div></div>
+  <div><div class="rangeLine"><span class="label">Parlaklık</span><strong id="brightnessVal${i}">20</strong></div><input id="brightness${i}" type="range" min="0" max="32" value="20"/></div></div>`;
+  $('panels').append(host);
+  $(`toggle${i}`).onclick=()=>{groups[i].on=!groups[i].on;apply(i)};
+  $(`color${i}`).oninput=e=>{groups[i].color=e.target.value;$(`hex${i}`).textContent=e.target.value.toUpperCase();apply(i)};
+  $(`brightness${i}`).oninput=e=>{groups[i].brightness=Number(e.target.value);apply(i)};
+  for(const color of swatches){const b=document.createElement('button');b.className='swatch';b.style.background=color;b.title=color;b.onclick=()=>{groups[i].color=color;$(`color${i}`).value=color;$(`hex${i}`).textContent=color.toUpperCase();apply(i)};$(`swatches${i}`).append(b)}
+  update(i);
+}
+makePanel(0);makePanel(1);
+$('off').onclick=()=>{groups.forEach((g,i)=>{g.on=false;update(i)});send('OFF')};
+$('both').onclick=()=>groups.forEach((g,i)=>{g.on=true;apply(i)});
+$('connect').onclick=async()=>{
+  if(connected()){device.gatt.disconnect();return}
+  if(!navigator.bluetooth){status('Web Bluetooth kullanılamıyor. Chrome/Edge ve localhost veya HTTPS gerekli.');return}
+  try{
+    status('Bluetooth cihazı seçiliyor…');
+    device=await navigator.bluetooth.requestDevice({filters:[{name:'ESP32-LED-20'}],optionalServices:[SERVICE]});
+    device.addEventListener('gattserverdisconnected',()=>{characteristic=null;status('Bağlantı koptu')});
+    const server=await device.gatt.connect();
+    const service=await server.getPrimaryService(SERVICE);
+    characteristic=await service.getCharacteristic(WRITE);
+    status('ESP32-LED-20 bağlı',true);
+    groups.forEach((_,i)=>apply(i));
+  }catch(e){status('Bağlantı kurulamadı: '+e.message)}
+};
+</script>
+</body>
+</html>
