@@ -1,96 +1,60 @@
 <!doctype html>
 <html lang="tr">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>ESP32 · RGB LED Kontrol</title>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#090c18"><title>LED KONTROL · RGB</title>
 <style>
-:root{color-scheme:dark;font-family:Inter,system-ui,-apple-system,Segoe UI,Arial,sans-serif}
-*{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(ellipse at 65% -30%,#243f65 0,transparent 60%),#0d1320;color:#ebeff9}
-main{max-width:900px;margin:auto;padding:40px 20px 60px}header{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:22px}
-h1{font-size:clamp(24px,4vw,34px);margin:0;letter-spacing:-.9px}.subtitle{color:#a5b0c7;margin-top:7px;font-size:14px}
-button{font:inherit;cursor:pointer;border:0;border-radius:12px;padding:11px 16px;font-weight:650;color:#f5f7ff;background:#2b374e}
-button:hover{filter:brightness(1.15)}button:disabled{opacity:.48;cursor:not-allowed}.primary{background:#5085ff;color:#fff}.danger{background:#582e42;color:#ffbfc9}
-.status{display:flex;align-items:center;gap:8px;font-size:13px;color:#b8c2d5;padding:9px 0}.dot{height:9px;width:9px;border-radius:50%;background:#e5a35c}.dot.connected{background:#47c78b}
-.panel{background:#182236;border:1px solid #334159;border-radius:20px;padding:24px;margin-top:18px;box-shadow:0 8px 30px #0002}
-.panelhead{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}h2{font-size:19px;margin:0}small{color:#a8b6cb}
-.leds{display:flex;gap:8px;padding:22px 0 24px;flex-wrap:wrap}.led{height:21px;width:21px;flex:1;min-width:16px;max-width:48px;border-radius:7px;background:#344055;border:1px solid #ffffff26;box-shadow:inset 0 1px 2px #ffffff15}
-.controls{display:grid;grid-template-columns:1fr 1fr;gap:24px}.control{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.label{color:#adb9d0;font-size:13px;margin-bottom:8px}
-input[type=color]{border:2px solid #52647f;padding:3px;width:56px;height:44px;border-radius:10px;background:transparent;cursor:pointer}
-input[type=range]{width:100%;accent-color:#7198ff;cursor:pointer}.rangeLine{display:flex;justify-content:space-between;align-items:center}.swatches{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
-.swatch{height:31px;width:31px;border-radius:50%;padding:0;border:2px solid #ffffff5c}.footer{font-size:13px;color:#a0aec7;margin:24px 0;line-height:1.7}
-.actions{display:flex;gap:12px;align-items:center;flex-wrap:wrap}.mono{font-family:ui-monospace,Consolas,monospace;font-size:12px;color:#a6b5d0}
-@media(max-width:620px){.controls{grid-template-columns:1fr}.panel{padding:17px}.leds{gap:4px}.led{border-radius:4px;height:16px}}
+:root{color-scheme:dark;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;--bg:#090c18;--panel:#171b2e;--muted:#9da6bc;--accent:#8271ff}*{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(ellipse at 52% -15%,#292750 0,transparent 52%),var(--bg);color:#f4f4fc}main{max-width:610px;margin:auto;padding:23px 17px 80px}header{display:flex;justify-content:space-between;align-items:center;gap:12px}h1{margin:0;font-size:22px;font-weight:770;letter-spacing:.05em}.sub{color:var(--muted);font-size:12px;margin:4px 0 0}.chip{border:1px solid #3e455b;background:#20263c;border-radius:25px;padding:10px 13px;font-size:12px;white-space:nowrap}.chip.online{background:#153e35;border-color:#318c76;color:#7df1bb}button{cursor:pointer;color:inherit;font:inherit;border:0}.shell{background:linear-gradient(145deg,#1d2137,#111625);border:1px solid #333955;border-radius:23px;padding:19px;margin-top:17px;box-shadow:0 14px 32px #0003}.groupTabs{display:grid;grid-template-columns:1fr 1fr;gap:9px}.tab{padding:13px;border-radius:13px;background:#272b42;color:#b3bbd1;font-weight:650}.tab.active{background:#6659db;color:white}.topline{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:15px}h2{font-size:17px;margin:0}.toggle{background:#444a60;padding:9px 13px;border-radius:22px;font-size:12px}.toggle.on{background:#236c63;color:#d5fff6}.leds{display:flex;gap:6px;margin:14px 0 21px}.led{height:13px;flex:1;border-radius:6px;background:#32394a;transition:background .16s}.wheelWrap{display:grid;place-items:center;margin:4px 0 7px}#wheel{touch-action:none;max-width:100%;width:288px;height:288px;display:block;cursor:crosshair}.colorText{text-align:center;font-size:13px;color:#c6cbe0;margin:7px 0 16px}.colorDot{display:inline-block;width:12px;height:12px;border-radius:50%;vertical-align:-1px;margin-right:7px;border:1px solid #fff4}.swatches{display:grid;grid-template-columns:repeat(8,1fr);gap:8px}.swatch{width:100%;aspect-ratio:1;border-radius:11px;border:2px solid #fff3;box-shadow:inset 0 0 0 1px #0003}.rangeRow{display:flex;justify-content:space-between;font-size:13px;margin:20px 0 11px}.rangeRow span{color:var(--muted)}input[type=range]{width:100%;accent-color:#8d7dff;cursor:pointer}.modes{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-top:15px}.mode{background:#282c45;padding:12px 5px;border-radius:13px;font-size:12px;min-height:56px;border:1px solid transparent}.mode b{display:block;font-size:18px;margin-bottom:5px}.mode.active{border-color:#9d90ff;background:#393367}.btnrow{display:grid;grid-template-columns:1fr 1fr;gap:10px}.btn{padding:13px 8px;border-radius:13px;font-weight:650;background:#292e48;font-size:13px}.btn.primary{background:#7364e9}.btn.danger{background:#623045;color:#ffe2ea}.notice{line-height:1.55;font-size:12px;color:#aab1ca;margin:16px 4px}.err{color:#ffb8bd}.hint{font-size:12px;color:#abb4cf;margin:12px 1px 0}.statusLine{min-height:17px;margin:10px 0 0;font-size:12px;color:#aeb8d1}.mini{font-size:12px;color:var(--muted)}@media(max-width:370px){.modes{grid-template-columns:repeat(2,1fr)}#wheel{width:250px;height:250px}.shell{padding:14px}}
 </style>
 </head>
-<body>
-<main>
-<header>
-  <div><h1>RGB LED Kontrol</h1><div class="subtitle">ESP32-DevKitC V4 · 20 WS2812B · BLE</div></div>
-  <button id="connect" class="primary">Bluetooth ile bağlan</button>
-</header>
-<div class="status"><span id="dot" class="dot"></span><span id="status">Bağlantı yok</span></div>
-<div id="panels"></div>
-<div class="panel actions"><button id="off" class="danger">Tüm LED'leri kapat</button><button id="both">Her iki grubu aç</button><span class="mono">USB güvenli parlaklık: 0–32 / 255</span></div>
-<p class="footer">Chrome veya Edge üzerinde <strong>http://localhost:8000</strong> adresinden açın. Bilgisayarın Bluetooth'u açık olmalı. İlk bağlantıda ESP32-LED-20 cihazını seçin. iPhone Safari, Web Bluetooth'u doğrudan desteklemez.</p>
-</main>
-<script>
+<body><main>
+<header><div><h1>LED KONTROL</h1><p class="sub">ESP32-C3 Mini · 18 LED (9 + 9) · BLE</p></div><button id="connect" class="chip">◌ Bağlan</button></header>
+<div class="statusLine" id="status">Bluetooth bağlantısı bekleniyor</div>
+<section class="shell">
+<div class="groupTabs"><button class="tab active" data-group="0">Grup 1 · 9 LED</button><button class="tab" data-group="1">Grup 2 · 9 LED</button></div>
+<div class="topline" style="margin-top:20px"><div><h2 id="groupTitle">Grup 1</h2><div class="mini">Bağımsız renk ve efekt kontrolü</div></div><button id="toggle" class="toggle">Kapalı · Aç</button></div>
+<div class="leds" id="leds"></div>
+<div class="wheelWrap"><canvas id="wheel" width="600" height="600" aria-label="Renk çarkı"></canvas></div>
+<div id="colorText" class="colorText"></div>
+<div id="swatches" class="swatches"></div>
+<div class="rangeRow"><span>Parlaklık</span><b id="brightnessText">80 / 200</b></div><input id="brightness" type="range" min="0" max="200" value="80">
+</section>
+<section class="shell"><div class="topline"><h2>Otomatik efektler</h2><span class="mini">Seçili grup</span></div><div class="modes" id="modes"></div><div class="rangeRow"><span>Animasyon hızı</span><b id="speedText">5 / 10</b></div><input id="speed" type="range" min="1" max="10" value="5"><p class="hint">Efektler ESP32 üzerinde çalışır; telefon bağlantısı kesilse de sürer.</p></section>
+<section class="shell"><div class="btnrow"><button class="btn primary" id="both">İki grubu aç</button><button class="btn danger" id="off">Tümünü kapat</button><button class="btn" id="sync">Bu ayarı iki gruba uygula</button><button class="btn" id="static">Sabit renge dön</button></div></section>
+<p class="notice">Chrome/Edge Web Bluetooth destekli ortamda HTTPS veya localhost üzerinden açın. iPhone Safari, Web Bluetooth'u doğrudan desteklemez. BLE cihaz adı: <b>LED KONTROL</b>. Bu sayfa ESP32 için aşağıdaki güncellenmiş yazılımla birlikte çalışır.</p>
+</main><script>
 'use strict';
-const SERVICE='f15e43a0-7a7f-4ff8-9a9a-822277011000';
-const WRITE='f15e43a0-7a7f-4ff8-9a9a-822277011001';
-let device=null, characteristic=null, queue=Promise.resolve();
-const groups=[{color:'#ff2020',brightness:20,on:false},{color:'#2080ff',brightness:20,on:false}];
-const $=id=>document.getElementById(id);
-const swatches=['#ff2020','#ff8f20','#ffe020','#30ef80','#209bff','#895aff','#ff55cc','#ffffff'];
-function connected(){return !!(characteristic && device?.gatt?.connected)}
-function status(message,ok=false){$('status').textContent=message;$('dot').classList.toggle('connected',ok);$('connect').textContent=ok?'Bağlantıyı kes':'Bluetooth ile bağlan'}
-function rgb(hex){return [1,3,5].map(n=>parseInt(hex.slice(n,n+2),16))}
-function send(msg){
-  if(!connected())return;
-  // GATT yazmalarini siraya koy: hizli renk degistirirken 'operation in progress' hatasini engeller.
-  queue=queue.catch(()=>{}).then(async()=>{
-    if(!connected())return;
-    const bytes=new TextEncoder().encode(msg);
-    await characteristic.writeValueWithResponse(bytes);
-  }).catch(e=>status('Gönderme hatası: '+e.message,connected()));
-}
-function update(i){
-  const g=groups[i], color=g.on?g.color:'#344055';
-  document.querySelectorAll(`#leds${i} .led`).forEach(el=>{el.style.background=color;el.style.opacity=g.on?(0.24+0.76*g.brightness/32):1;el.style.boxShadow=g.on?`0 0 10px ${g.color}60`:'none'});
-  $(`state${i}`).textContent=g.on?'Açık':'Kapalı';$(`toggle${i}`).textContent=g.on?'Grubu kapat':'Grubu aç';
-  $(`brightnessVal${i}`).textContent=g.brightness;
-}
-function apply(i){const g=groups[i];send(`G,${i},${rgb(g.color).join(',')},${g.brightness},${g.on?1:0}`);update(i)}
-function makePanel(i){
-  const host=document.createElement('section');host.className='panel';
-  host.innerHTML=`<div class="panelhead"><div><h2>Grup ${i+1} <small>· LED ${i*10+1}–${i*10+10}</small></h2><div class="subtitle" id="state${i}">Kapalı</div></div><button id="toggle${i}">Grubu aç</button></div>
-  <div class="leds" id="leds${i}">${'<span class="led"></span>'.repeat(10)}</div>
-  <div class="controls"><div><div class="label">Renk seçimi</div><div class="control"><input type="color" id="color${i}" value="${groups[i].color}" /><strong id="hex${i}">${groups[i].color.toUpperCase()}</strong></div><div class="swatches" id="swatches${i}"></div></div>
-  <div><div class="rangeLine"><span class="label">Parlaklık</span><strong id="brightnessVal${i}">20</strong></div><input id="brightness${i}" type="range" min="0" max="32" value="20"/></div></div>`;
-  $('panels').append(host);
-  $(`toggle${i}`).onclick=()=>{groups[i].on=!groups[i].on;apply(i)};
-  $(`color${i}`).oninput=e=>{groups[i].color=e.target.value;$(`hex${i}`).textContent=e.target.value.toUpperCase();apply(i)};
-  $(`brightness${i}`).oninput=e=>{groups[i].brightness=Number(e.target.value);apply(i)};
-  for(const color of swatches){const b=document.createElement('button');b.className='swatch';b.style.background=color;b.title=color;b.onclick=()=>{groups[i].color=color;$(`color${i}`).value=color;$(`hex${i}`).textContent=color.toUpperCase();apply(i)};$(`swatches${i}`).append(b)}
-  update(i);
-}
-makePanel(0);makePanel(1);
-$('off').onclick=()=>{groups.forEach((g,i)=>{g.on=false;update(i)});send('OFF')};
-$('both').onclick=()=>groups.forEach((g,i)=>{g.on=true;apply(i)});
-$('connect').onclick=async()=>{
-  if(connected()){device.gatt.disconnect();return}
-  if(!navigator.bluetooth){status('Web Bluetooth kullanılamıyor. Chrome/Edge ve localhost veya HTTPS gerekli.');return}
-  try{
-    status('Bluetooth cihazı seçiliyor…');
-    device=await navigator.bluetooth.requestDevice({filters:[{name:'ESP32-LED-20'}],optionalServices:[SERVICE]});
-    device.addEventListener('gattserverdisconnected',()=>{characteristic=null;status('Bağlantı koptu')});
-    const server=await device.gatt.connect();
-    const service=await server.getPrimaryService(SERVICE);
-    characteristic=await service.getCharacteristic(WRITE);
-    status('ESP32-LED-20 bağlı',true);
-    groups.forEach((_,i)=>apply(i));
-  }catch(e){status('Bağlantı kurulamadı: '+e.message)}
-};
-</script>
-</body>
-</html>
+const NAME='LED KONTROL',SERVICE='f15e43a0-7a7f-4ff8-9a9a-822277011000',WRITE='f15e43a0-7a7f-4ff8-9a9a-822277011001';
+const MODES=[['🎨','Sabit renk'],['🌈','Gökkuşağı'],['💓','Nefes'],['✨','Kayan ışık'],['🔁','Renk döngüsü'],['⭐','Parıltı'],['➡️','Dolma']];
+const PALETTE=['#ff303e','#ff8c24','#ffe545','#30ef87','#19c5ff','#2771ff','#9a59ff','#ffffff'];
+const groups=[{color:'#ff303e',brightness:80,on:false,mode:0,speed:5},{color:'#2771ff',brightness:80,on:false,mode:0,speed:5}];
+let selected=0,device=null,characteristic=null,queue=Promise.resolve();
+const $=id=>document.getElementById(id),isConnected=()=>!!(characteristic&&device?.gatt?.connected);
+function status(s,error=false){$('status').textContent=s;$('status').classList.toggle('err',error)}
+function hexRgb(c){return [1,3,5].map(i=>parseInt(c.slice(i,i+2),16))}
+function command(s){if(!isConnected())return;queue=queue.catch(()=>{}).then(async()=>{if(!isConnected())return;await characteristic.writeValueWithResponse(new TextEncoder().encode(s))}).catch(e=>status('Gönderilemedi: '+e.message,true))}
+function sendStatic(i){let g=groups[i];command(`G,${i},${hexRgb(g.color).join(',')},${g.brightness},${+g.on}`)}
+function sendMode(i){let g=groups[i];command(`E,${i},${g.mode},${g.speed}`)}
+function sendBrightness(i){command(`B,${i},${groups[i].brightness}`)}
+function sendPower(i){command(`P,${i},${+groups[i].on}`)}
+function updatePreview(){let g=groups[selected],list=$('leds');list.innerHTML='';for(let i=0;i<9;i++){let el=document.createElement('div');el.className='led';el.style.background=g.on?g.color:'#32394a';el.style.opacity=g.on?Math.max(.25,g.brightness/200):1;el.style.boxShadow=g.on?`0 0 11px ${g.color}80`:'none';list.append(el)}$('groupTitle').textContent=`Grup ${selected+1}`;$('toggle').textContent=g.on?'Açık · Kapat':'Kapalı · Aç';$('toggle').classList.toggle('on',g.on);$('brightness').value=g.brightness;$('brightnessText').textContent=`${g.brightness} / 200`;$('speed').value=g.speed;$('speedText').textContent=`${g.speed} / 10`;$('colorText').innerHTML=`<i class="colorDot" style="background:${g.color}"></i>${g.color.toUpperCase()}`;document.querySelectorAll('.tab').forEach((b,i)=>b.classList.toggle('active',i===selected));document.querySelectorAll('.mode').forEach((b,i)=>b.classList.toggle('active',i===g.mode));drawWheel()}
+function setColor(c){let g=groups[selected];g.color=c;g.mode=0;g.on=true;sendStatic(selected);updatePreview()}
+const wheel=$('wheel'),ctx=wheel.getContext('2d');let wheelMap;
+function hsvRgb(h,s,v){let c=v*s,x=c*(1-Math.abs((h/60)%2-1)),m=v-c,r=0,g=0,b=0;if(h<60)[r,g,b]=[c,x,0];else if(h<120)[r,g,b]=[x,c,0];else if(h<180)[r,g,b]=[0,c,x];else if(h<240)[r,g,b]=[0,x,c];else if(h<300)[r,g,b]=[x,0,c];else[r,g,b]=[c,0,x];return [r,g,b].map(z=>Math.round((z+m)*255))}
+function makeWheel(){let n=wheel.width,mid=n/2,outer=mid-8,inner=72;wheelMap=ctx.createImageData(n,n);let d=wheelMap.data;for(let y=0;y<n;y++)for(let x=0;x<n;x++){let dx=x-mid,dy=y-mid,dist=Math.hypot(dx,dy),p=(y*n+x)*4;if(dist<outer&&dist>inner){let h=(Math.atan2(dy,dx)*180/Math.PI+360)%360;let rgb=hsvRgb(h,1,1);d.set([...rgb,255],p)}else if(dist<=inner){let rgb=hsvRgb(14,.78,.92);d.set([...rgb,255],p)}else d[p+3]=0}}
+function drawWheel(){if(!wheelMap)return;ctx.putImageData(wheelMap,0,0);let [r,g,b]=hexRgb(groups[selected].color);let max=Math.max(r,g,b)/255,min=Math.min(r,g,b)/255,h=0,delta=max-min;if(delta){if(max===r/255)h=60*(((g-b)/255/delta)%6);else if(max===g/255)h=60*((b-r)/255/delta+2);else h=60*((r-g)/255/delta+4)}h=(h+360)%360;let rad=h*Math.PI/180;let x=300+224*Math.cos(rad),y=300+224*Math.sin(rad);ctx.beginPath();ctx.arc(x,y,19,0,Math.PI*2);ctx.lineWidth=8;ctx.strokeStyle='#fff';ctx.stroke();ctx.beginPath();ctx.arc(300,300,58,0,2*Math.PI);ctx.fillStyle=groups[selected].color;ctx.fill();ctx.lineWidth=7;ctx.strokeStyle='#f7f7ff';ctx.stroke()}
+let lastWheel=0;function pickWheel(e){let rect=wheel.getBoundingClientRect(),x=(e.clientX-rect.left)*600/rect.width-300,y=(e.clientY-rect.top)*600/rect.height-300,r=Math.hypot(x,y);if(r<75){setColor('#ffffff');return}if(r>292)return;let h=(Math.atan2(y,x)*180/Math.PI+360)%360;let parts=hsvRgb(h,1,1);setColor('#'+parts.map(n=>n.toString(16).padStart(2,'0')).join(''))}
+wheel.addEventListener('pointerdown',e=>{wheel.setPointerCapture(e.pointerId);pickWheel(e)});wheel.addEventListener('pointermove',e=>{if(e.buttons&&Date.now()-lastWheel>70){lastWheel=Date.now();pickWheel(e)}});
+PALETTE.forEach(c=>{let b=document.createElement('button');b.className='swatch';b.style.background=c;b.title=c;b.onclick=()=>setColor(c);$('swatches').append(b)});
+MODES.forEach(([emoji,label],i)=>{let b=document.createElement('button');b.className='mode';b.innerHTML=`<b>${emoji}</b>${label}`;b.onclick=()=>{let g=groups[selected];g.mode=i;g.on=true;if(i===0)sendStatic(selected);else{sendPower(selected);sendMode(selected)}updatePreview()};$('modes').append(b)});
+document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{selected=Number(b.dataset.group);updatePreview()});
+$('toggle').onclick=()=>{let g=groups[selected];g.on=!g.on;sendPower(selected);updatePreview()};
+$('brightness').oninput=e=>{let g=groups[selected];g.brightness=Number(e.target.value);sendBrightness(selected);$('brightnessText').textContent=`${g.brightness} / 200`;updatePreview()};
+$('speed').oninput=e=>{let g=groups[selected];g.speed=Number(e.target.value);if(g.mode)sendMode(selected);$('speedText').textContent=`${g.speed} / 10`};
+$('static').onclick=()=>{let g=groups[selected];g.mode=0;sendStatic(selected);updatePreview()};
+$('off').onclick=()=>{groups.forEach(g=>g.on=false);command('OFF');updatePreview()};
+$('both').onclick=()=>{groups.forEach((g,i)=>{g.on=true;sendPower(i)});updatePreview()};
+$('sync').onclick=()=>{let i=1-selected;groups[i]={...groups[selected]};sendStatic(i);if(groups[i].mode)sendMode(i);updatePreview();status('Seçili ayarlar her iki gruba uygulandı')};
+$('connect').onclick=async()=>{if(isConnected()){device.gatt.disconnect();return}if(!navigator.bluetooth){status('Bu tarayıcı Web Bluetooth desteklemiyor (HTTPS ve Chrome/Edge gerekiyor).',true);return}try{status('Cihaz seçimi bekleniyor...');device=await navigator.bluetooth.requestDevice({filters:[{name:NAME}],optionalServices:[SERVICE]});device.addEventListener('gattserverdisconnected',()=>{characteristic=null;$('connect').textContent='◌ Bağlan';$('connect').classList.remove('online');status('Bluetooth bağlantısı kesildi')});let server=await device.gatt.connect(),service=await server.getPrimaryService(SERVICE);characteristic=await service.getCharacteristic(WRITE);$('connect').textContent='● Bağlı · Kes';$('connect').classList.add('online');status('Bağlandı: '+NAME);groups.forEach((g,i)=>{sendStatic(i);if(g.mode)sendMode(i)})}catch(e){status('BLE bağlantı hatası: '+e.message,true)}};
+makeWheel();updatePreview();
+</script></body></html>
