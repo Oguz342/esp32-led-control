@@ -8,7 +8,7 @@
 </style>
 </head>
 <body><main>
-<header><div><h1>LED KONTROL</h1><p class="sub">ESP32-C3 Mini · 18 LED (9 + 9) · BLE</p></div><button id="connect" class="chip">◌ Bağlan</button></header>
+<header><div><h1>LED KONTROL</h1><p class="sub"></p></div><button id="connect" class="chip">◌ Bağlan</button></header>
 <div class="statusLine" id="status">Bluetooth bağlantısı bekleniyor</div>
 <section class="shell">
 <div class="groupTabs"><button class="tab active" data-group="0">Grup 1 · 9 LED</button><button class="tab" data-group="1">Grup 2 · 9 LED</button></div>
@@ -19,9 +19,9 @@
 <div id="swatches" class="swatches"></div>
 <div class="rangeRow"><span>Parlaklık</span><b id="brightnessText">80 / 200</b></div><input id="brightness" type="range" min="0" max="200" value="80">
 </section>
-<section class="shell"><div class="topline"><h2>Otomatik efektler</h2><span class="mini">Seçili grup</span></div><div class="modes" id="modes"></div><div class="rangeRow"><span>Animasyon hızı</span><b id="speedText">5 / 10</b></div><input id="speed" type="range" min="1" max="10" value="5"><p class="hint">Efektler ESP32 üzerinde çalışır; telefon bağlantısı kesilse de sürer.</p></section>
+<section class="shell"><div class="topline"><h2>Otomatik efektler</h2><span class="mini">Seçili grup</span></div><div class="modes" id="modes"></div><div class="rangeRow"><span>Animasyon hızı</span><b id="speedText">5 / 10</b></div><input id="speed" type="range" min="1" max="10" value="5"><p class="hint"></p></section>
 <section class="shell"><div class="btnrow"><button class="btn primary" id="both">İki grubu aç</button><button class="btn danger" id="off">Tümünü kapat</button><button class="btn" id="sync">Bu ayarı iki gruba uygula</button><button class="btn" id="static">Sabit renge dön</button></div></section>
-<p class="notice">Chrome/Edge Web Bluetooth destekli ortamda HTTPS veya localhost üzerinden açın. iPhone Safari, Web Bluetooth'u doğrudan desteklemez. BLE cihaz adı: <b>LED KONTROL</b>. Bu sayfa ESP32 için aşağıdaki güncellenmiş yazılımla birlikte çalışır.</p>
+<p class="notice">Chrome/Edge Web Bluetooth destekli ortamda HTTPS veya localhost üzerinden açın. iPhone Safari, Web Bluetooth'u doğrudan desteklemez. BLE cihaz adı: <b>LED KONTROL</b></p>
 </main><script>
 'use strict';
 const NAME='LED KONTROL',SERVICE='f15e43a0-7a7f-4ff8-9a9a-822277011000',WRITE='f15e43a0-7a7f-4ff8-9a9a-822277011001';
