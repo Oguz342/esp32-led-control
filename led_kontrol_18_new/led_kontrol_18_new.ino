@@ -3,6 +3,7 @@
 #include <BLEDevice.h>
 #include <BLEServer.h>
 #include <BLEUtils.h>
+#include <Preferences.h>
 
 #define LED_PIN 21
 #define LED_COUNT 18
@@ -11,6 +12,7 @@
 #define BLE_NAME "LED KONTROL"
 #define SERVICE_UUID "f15e43a0-7a7f-4ff8-9a9a-822277011000"
 #define WRITE_UUID "f15e43a0-7a7f-4ff8-9a9a-822277011001"
+#define STATE_UUID "f15e43a0-7a7f-4ff8-9a9a-822277011002"
 
 Adafruit_NeoPixel strip(LED_COUNT, LED_PIN, NEO_GRB + NEO_KHZ800);
 
@@ -23,6 +25,34 @@ Group groups[2] = {{255, 48, 62, 80, false, 0, 5},
                    {39, 113, 255, 80, false, 0, 5}};
 uint32_t lastFrame = 0;
 uint32_t frameNumber = 0;
+Preferences preferences;
+BLECharacteristic *stateCharacteristic = nullptr;
+bool settingsDirty = false;
+uint32_t saveDue = 0;
+
+void updateStateCharacteristic() {
+  if (!stateCharacteristic) return;
+  char state[100];
+  snprintf(state, sizeof(state),
+    "%u,%u,%u,%u,%u,%u,%u,%u;%u,%u,%u,%u,%u,%u,%u,%u",
+    groups[0].r, groups[0].g, groups[0].b, groups[0].brightness,
+    groups[0].enabled, groups[0].mode, groups[0].speed,
+    0, groups[1].r, groups[1].g, groups[1].b, groups[1].brightness,
+    groups[1].enabled, groups[1].mode, groups[1].speed, 0);
+  stateCharacteristic->setValue((uint8_t*)state, strlen(state));
+}
+void markSettingsChanged() {
+  settingsDirty = true;
+  saveDue = millis() + 1500; // Kaydırıcı kullanılırken flaşa sürekli yazma.
+  updateStateCharacteristic();
+}
+void saveSettings() {
+  preferences.begin("led-settings", false);
+  preferences.putBytes("groups", groups, sizeof(groups));
+  preferences.end();
+  settingsDirty = false;
+}
+
 
 uint32_t scaled(uint8_t r, uint8_t g, uint8_t b, uint8_t brightness) {
   return strip.Color((uint16_t)r * brightness / 255,
@@ -103,6 +133,7 @@ void parseCommand(String cmd) {
   } else {
     Serial.println("Gecersiz komut: " + cmd); return;
   }
+  markSettingsChanged();
   renderLeds();
 }
 class ServerCallbacks : public BLEServerCallbacks {
@@ -121,6 +152,20 @@ class WriteCallbacks : public BLECharacteristicCallbacks {
 void setup() {
   Serial.begin(115200);
   strip.begin(); strip.clear(); strip.show();
+
+  // Önceki ayarları kalıcı NVS belleğinden yükle.
+  preferences.begin("led-settings", true);
+  if (preferences.getBytesLength("groups") == sizeof(groups)) {
+    preferences.getBytes("groups", groups, sizeof(groups));
+  }
+  preferences.end();
+  for (int i = 0; i < 2; i++) {
+    groups[i].brightness = min((int)groups[i].brightness, MAX_BRIGHTNESS);
+    groups[i].mode = min((int)groups[i].mode, 6);
+    groups[i].speed = constrain(groups[i].speed, 1, 10);
+  }
+  renderLeds();
+
   BLEDevice::init(BLE_NAME);
   BLEServer *server = BLEDevice::createServer();
   server->setCallbacks(new ServerCallbacks());
@@ -128,6 +173,9 @@ void setup() {
   BLECharacteristic *writeCharacteristic = service->createCharacteristic(
     WRITE_UUID, BLECharacteristic::PROPERTY_WRITE | BLECharacteristic::PROPERTY_WRITE_NR);
   writeCharacteristic->setCallbacks(new WriteCallbacks());
+  stateCharacteristic = service->createCharacteristic(
+    STATE_UUID, BLECharacteristic::PROPERTY_READ);
+  updateStateCharacteristic();
   service->start();
   BLEAdvertising *advertising = BLEDevice::getAdvertising();
   advertising->addServiceUUID(SERVICE_UUID);
@@ -135,6 +183,9 @@ void setup() {
   Serial.println("LED KONTROL BLE hazir - 18 LED");
 }
 void loop() {
+  if (settingsDirty && (int32_t)(millis() - saveDue) >= 0) {
+    saveSettings();
+  }
   if (millis() - lastFrame >= 35) {
     lastFrame = millis();
     frameNumber++;

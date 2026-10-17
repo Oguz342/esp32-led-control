@@ -24,11 +24,11 @@
 <p class="notice">Chrome/Edge Web Bluetooth destekli ortamda HTTPS veya localhost üzerinden açın. iPhone Safari, Web Bluetooth'u doğrudan desteklemez. BLE cihaz adı: <b>LED KONTROL</b></p>
 </main><script>
 'use strict';
-const NAME='LED KONTROL',SERVICE='f15e43a0-7a7f-4ff8-9a9a-822277011000',WRITE='f15e43a0-7a7f-4ff8-9a9a-822277011001';
+const NAME='LED KONTROL',SERVICE='f15e43a0-7a7f-4ff8-9a9a-822277011000',WRITE='f15e43a0-7a7f-4ff8-9a9a-822277011001',STATE='f15e43a0-7a7f-4ff8-9a9a-822277011002';
 const MODES=[['🎨','Sabit renk'],['🌈','Gökkuşağı'],['💓','Nefes'],['✨','Kayan ışık'],['🔁','Renk döngüsü'],['⭐','Parıltı'],['➡️','Dolma']];
 const PALETTE=['#ff303e','#ff8c24','#ffe545','#30ef87','#19c5ff','#2771ff','#9a59ff','#ffffff'];
 const groups=[{color:'#ff303e',brightness:80,on:false,mode:0,speed:5},{color:'#2771ff',brightness:80,on:false,mode:0,speed:5}];
-let selected=0,device=null,characteristic=null,queue=Promise.resolve();
+let selected=0,device=null,characteristic=null,stateCharacteristic=null,queue=Promise.resolve();
 const $=id=>document.getElementById(id),isConnected=()=>!!(characteristic&&device?.gatt?.connected);
 function status(s,error=false){$('status').textContent=s;$('status').classList.toggle('err',error)}
 function hexRgb(c){return [1,3,5].map(i=>parseInt(c.slice(i,i+2),16))}
@@ -55,6 +55,17 @@ $('static').onclick=()=>{let g=groups[selected];g.mode=0;sendStatic(selected);up
 $('off').onclick=()=>{groups.forEach(g=>g.on=false);command('OFF');updatePreview()};
 $('both').onclick=()=>{groups.forEach((g,i)=>{g.on=true;sendPower(i)});updatePreview()};
 $('sync').onclick=()=>{let i=1-selected;groups[i]={...groups[selected]};sendStatic(i);if(groups[i].mode)sendMode(i);updatePreview();status('Seçili ayarlar her iki gruba uygulandı')};
-$('connect').onclick=async()=>{if(isConnected()){device.gatt.disconnect();return}if(!navigator.bluetooth){status('Bu tarayıcı Web Bluetooth desteklemiyor (HTTPS ve Chrome/Edge gerekiyor).',true);return}try{status('Cihaz seçimi bekleniyor...');device=await navigator.bluetooth.requestDevice({filters:[{name:NAME}],optionalServices:[SERVICE]});device.addEventListener('gattserverdisconnected',()=>{characteristic=null;$('connect').textContent='◌ Bağlan';$('connect').classList.remove('online');status('Bluetooth bağlantısı kesildi')});let server=await device.gatt.connect(),service=await server.getPrimaryService(SERVICE);characteristic=await service.getCharacteristic(WRITE);$('connect').textContent='● Bağlı · Kes';$('connect').classList.add('online');status('Bağlandı: '+NAME);groups.forEach((g,i)=>{sendStatic(i);if(g.mode)sendMode(i)})}catch(e){status('BLE bağlantı hatası: '+e.message,true)}};
+$('connect').onclick=async()=>{if(isConnected()){device.gatt.disconnect();return}if(!navigator.bluetooth){status('Bu tarayıcı Web Bluetooth desteklemiyor (HTTPS ve Chrome/Edge gerekiyor).',true);return}try{status('Cihaz seçimi bekleniyor...');device=await navigator.bluetooth.requestDevice({filters:[{name:NAME}],optionalServices:[SERVICE]});device.addEventListener('gattserverdisconnected',()=>{characteristic=null;$('connect').textContent='◌ Bağlan';$('connect').classList.remove('online');status('Bluetooth bağlantısı kesildi')});let server=await device.gatt.connect(),service=await server.getPrimaryService(SERVICE);characteristic=await service.getCharacteristic(WRITE);stateCharacteristic=await service.getCharacteristic(STATE);$('connect').textContent='● Bağlı · Kes';$('connect').classList.add('online');status('Bağlandı: '+NAME);
+let raw=new TextDecoder().decode(await stateCharacteristic.readValue()).trim();
+let parts=raw.split(';');
+if(parts.length===2){
+  for(let i=0;i<2;i++){
+    let v=parts[i].split(',').map(Number);
+    if(v.length>=7 && v.every(Number.isFinite)){
+      groups[i]={color:'#'+v.slice(0,3).map(n=>Math.max(0,Math.min(255,n)).toString(16).padStart(2,'0')).join(''),brightness:Math.max(0,Math.min(200,v[3])),on:!!v[4],mode:Math.max(0,Math.min(6,v[5])),speed:Math.max(1,Math.min(10,v[6]))};
+    }
+  }
+  updatePreview();status('Bağlandı · Cihazdaki kayıtlı ayarlar yüklendi');
+} else {status('Bağlandı; kayıtlı ayarlar okunamadı',true)}}catch(e){status('BLE bağlantı hatası: '+e.message,true)}};
 makeWheel();updatePreview();
 </script></body></html>
